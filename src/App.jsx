@@ -2,7 +2,6 @@ import { useEffect, useState } from "react";
 import { createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut } from "firebase/auth";
 import { auth, db, sendMessage, listenForMessages, listenForChats } from "./firebase/firebase";
 import { collection, query, where, getDocs, doc, setDoc, getDoc } from "firebase/firestore";
-import { use } from "react";
 
 function Chat({ chatId, user1, user2 }) {
     const [messageText, setMessageText] = useState("");
@@ -129,23 +128,6 @@ function App() {
         }
     };
 
-    const logAllUsers = async () => {
-        try {
-            // Reference the "users" collection
-            const usersCollection = collection(db, "users");
-
-            // Fetch all documents in the collection
-            const querySnapshot = await getDocs(usersCollection);
-
-            // Loop through the results and log each user's data
-            querySnapshot.forEach((doc) => {
-                // console.log("User ID:", doc.id, "User Data:", doc.data());
-            });
-        } catch (error) {
-            console.error("Error fetching users:", error.message);
-        }
-    };
-
     const startChat = (user) => {
         setSelectedUser(user);
     };
@@ -204,28 +186,9 @@ function App() {
         }
     }, [selectedUser]);
 
-    // useEffect(() => {
-    //     const fetchChats = async () => {
-    //         const q = query(collection(db, "chats"));
-    //         const querySnapshot = await getDocs(q);
-    //         const chatList = querySnapshot.docs.map((doc) => ({
-    //             id: doc.id,
-    //             ...doc.data(),
-    //         }));
-
-    //         const filteredChats = chatList.filter((chat) => chat.users.some((user) => user.email === auth.currentUser.email));
-
-    //         console.log("Filtered chats:", filteredChats);
-    //         setChats(filteredChats);
-    //     };
-
-    //     fetchChats();
-    // }, []);
-
     useEffect(() => {
         const unsubscribe = listenForChats(setChats);
 
-        // Cleanup the listener on component unmount
         return () => {
             unsubscribe();
         };
@@ -244,26 +207,6 @@ function App() {
                         <div>
                             <h4>All Chats</h4>
                             {chats.length > 0 ? (
-                                // chats.map((chat) => (
-                                //     <div key={chat.id} className="chat-item">
-                                //         <p>
-                                //             {chat?.users
-                                //                 ?.filter((user) => user.email !== auth.currentUser.email) // Exclude the logged-in user
-                                //                 .map((user) => (
-                                //                     <p
-                                //                         key={user.uid} // Ensure unique key for each user
-                                //                         onClick={() => {
-                                //                             startChat(user);
-                                //                             console.log(user);
-                                //                         }}
-                                //                     >
-                                //                         {user?.fullName}: {chat.lastMessage || "No messages yet"}
-                                //                     </p>
-                                //                 ))}
-                                //         </p>
-                                //     </div>
-                                // ))
-
                                 chats.map((chat) => (
                                     <div key={chat.id} className="chat-item">
                                         <p>
