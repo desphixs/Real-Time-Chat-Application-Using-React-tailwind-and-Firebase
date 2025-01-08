@@ -73,6 +73,23 @@ export const listenForMessages = (chatId, setMessages) => {
     });
 };
 
+export const listenForChats = (setChats) => {
+    const chatsRef = collection(db, "chats");
+    const unsubscribe = onSnapshot(chatsRef, (snapshot) => {
+        const chatList = snapshot.docs.map((doc) => ({
+            id: doc.id,
+            ...doc.data(),
+        }));
+
+        // Filter chats to only include those where the current user is a participant
+        const filteredChats = chatList.filter((chat) => chat.users.some((user) => user.email === auth.currentUser.email));
+
+        setChats(filteredChats); // Update state with filtered chats
+    });
+
+    return unsubscribe; // Return the unsubscribe function for cleanup
+};
+
 // Monitor authentication state changes
 onAuthStateChanged(auth, async (user) => {
     if (user) {

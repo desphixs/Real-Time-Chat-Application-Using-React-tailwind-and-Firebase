@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut } from "firebase/auth";
-import { auth, db, sendMessage, listenForMessages } from "./firebase/firebase";
+import { auth, db, sendMessage, listenForMessages, listenForChats } from "./firebase/firebase";
 import { collection, query, where, getDocs, doc, setDoc, getDoc } from "firebase/firestore";
 import { use } from "react";
 
@@ -37,71 +37,6 @@ function Chat({ chatId, user1, user2 }) {
                     Send
                 </button>
             </div>
-        </div>
-    );
-}
-
-function ChatList() {
-    const [chats, setChats] = useState([]);
-
-    // useEffect(() => {
-    //     const fetchChats = async () => {
-    //         console.log("Fetching chats...");
-
-    //         const q = query(collection(db, "chats"), where("users", "array-contains", auth.currentUser.email));
-    //         const querySnapshot = await getDocs(q);
-    //         const chatList = [];
-    //         querySnapshot.forEach((doc) => {
-    //             chatList.push(doc.data());
-    //         });
-    //         setChats(chatList);
-    //     };
-
-    //     fetchChats();
-    // }, []);
-
-    useEffect(() => {
-        const fetchChats = async () => {
-            try {
-                console.log("Fetching chats...");
-
-                // Ensure currentUser is defined
-                const currentUserEmail = auth.currentUser?.email;
-                if (!currentUserEmail) {
-                    console.error("Current user not available");
-                    return;
-                }
-
-                // Query chats where the current user is a participant
-                const q = query(collection(db, "chats"), where("users", "array-contains", currentUserEmail));
-                const querySnapshot = await getDocs(q);
-
-                if (querySnapshot.empty) {
-                    console.log("No chats found");
-                } else {
-                    const chatList = querySnapshot.docs.map((doc) => ({
-                        id: doc.id, // Include the chat ID
-                        ...doc.data(),
-                    }));
-                    console.log("Fetched chats:", chatList);
-                    setChats(chatList);
-                }
-            } catch (error) {
-                console.error("Error fetching chats:", error);
-            }
-        };
-
-        fetchChats();
-    }, []);
-
-    return (
-        <div>
-            {chats.map((chat) => (
-                <div key={chat.id} className="flex justify-between items-center">
-                    <div>{chat.name}</div>
-                    {chat.unreadCount > 0 && <span className="bg-red-500 text-white rounded-full px-2 py-1 text-xs">{chat.unreadCount}</span>}
-                </div>
-            ))}
         </div>
     );
 }
@@ -269,6 +204,33 @@ function App() {
         }
     }, [selectedUser]);
 
+    // useEffect(() => {
+    //     const fetchChats = async () => {
+    //         const q = query(collection(db, "chats"));
+    //         const querySnapshot = await getDocs(q);
+    //         const chatList = querySnapshot.docs.map((doc) => ({
+    //             id: doc.id,
+    //             ...doc.data(),
+    //         }));
+
+    //         const filteredChats = chatList.filter((chat) => chat.users.some((user) => user.email === auth.currentUser.email));
+
+    //         console.log("Filtered chats:", filteredChats);
+    //         setChats(filteredChats);
+    //     };
+
+    //     fetchChats();
+    // }, []);
+
+    useEffect(() => {
+        const unsubscribe = listenForChats(setChats);
+
+        // Cleanup the listener on component unmount
+        return () => {
+            unsubscribe();
+        };
+    }, []);
+
     return (
         <div>
             <div>
@@ -281,7 +243,49 @@ function App() {
                         <hr />
                         <div>
                             <h4>All Chats</h4>
-                            <ChatList />
+                            {chats.length > 0 ? (
+                                // chats.map((chat) => (
+                                //     <div key={chat.id} className="chat-item">
+                                //         <p>
+                                //             {chat?.users
+                                //                 ?.filter((user) => user.email !== auth.currentUser.email) // Exclude the logged-in user
+                                //                 .map((user) => (
+                                //                     <p
+                                //                         key={user.uid} // Ensure unique key for each user
+                                //                         onClick={() => {
+                                //                             startChat(user);
+                                //                             console.log(user);
+                                //                         }}
+                                //                     >
+                                //                         {user?.fullName}: {chat.lastMessage || "No messages yet"}
+                                //                     </p>
+                                //                 ))}
+                                //         </p>
+                                //     </div>
+                                // ))
+
+                                chats.map((chat) => (
+                                    <div key={chat.id} className="chat-item">
+                                        <p>
+                                            {chat?.users
+                                                ?.filter((user) => user.email !== auth.currentUser.email)
+                                                .map((user) => (
+                                                    <p
+                                                        key={user.uid}
+                                                        onClick={() => {
+                                                            startChat(user);
+                                                            console.log(user);
+                                                        }}
+                                                    >
+                                                        {user?.fullName}: {chat.lastMessage || "No messages yet"}
+                                                    </p>
+                                                ))}
+                                        </p>
+                                    </div>
+                                ))
+                            ) : (
+                                <p>No chats available</p>
+                            )}
                         </div>
                         <hr />
                         <div className="flex flex-col items-center justify-center h-screen bg-gray-100">
