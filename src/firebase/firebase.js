@@ -6,12 +6,12 @@ import { getApp } from "firebase/app";
 
 // Firebase configuration
 const firebaseConfig = {
-    apiKey: "AIzaSyCcm4XROPZdWHcnVwFqldvwAWdRyuka5q0",
-    authDomain: "real-time-chat-ef747.firebaseapp.com",
-    projectId: "real-time-chat-ef747",
-    storageBucket: "real-time-chat-ef747.appspot.com", // Corrected storageBucket
-    messagingSenderId: "731524034555",
-    appId: "1:731524034555:web:936e5299621f14ac9b655e",
+    apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
+    authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
+    projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
+    storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
+    messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
+    appId: import.meta.env.VITE_FIREBASE_APP_ID,
 };
 
 // Initialize Firebase app
