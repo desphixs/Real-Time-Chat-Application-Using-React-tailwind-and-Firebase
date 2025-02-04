@@ -1,46 +1,57 @@
 import { useEffect, useMemo, useState } from "react";
 import { RiMore2Fill } from "react-icons/ri";
-import { onAuthStateChanged } from "firebase/auth";
-import { doc, getDoc } from "firebase/firestore";
+// import { onAuthStateChanged } from "firebase/auth";
+// import { doc, getDoc } from "firebase/firestore";
 
 import defaultAvatar from "../../public/assets/default.jpg";
 import { formatTimestamp } from "../utils/formatTimestamp";
 import SearchModal from "./SearchModal";
-import { auth, db, listenForChats } from "../firebase/firebase";
+import { auth, listenForChats } from "../firebase/firebase";
 
 const ChatList = ({ setSelectedUser }) => {
     const [chats, setChats] = useState([]);
     const [user, setUser] = useState(null);
 
     useEffect(() => {
+        // Call `listenForChats` and pass `setChats` to update the chat list in real-time
+        // `listenForChats` is expected to be a function that listens to Firestore database changes
         const unsubscribe = listenForChats(setChats);
+
+        // Cleanup function: This ensures that when the component unmounts, we stop listening for chat updates
         return () => {
             unsubscribe();
         };
-    }, []);
+    }, []); // The empty dependency array ensures this effect runs only once when the component mounts
 
     const sortedChats = useMemo(() => {
+        // useMemo is used to optimize performance by memoizing (caching) the sorted chats.
+        // This means it only recalculates when `chats` changes instead of sorting on every render.
+
         return [...chats].sort((a, b) => b.lastMessageTimestamp - a.lastMessageTimestamp);
+        // Creates a copy of the `chats` array using the spread operator (`[...]`)
+        // Sorts the copied array based on the `lastMessageTimestamp` (most recent first)
+        // `b - a` ensures descending order, meaning the newest messages appear first.
     }, [chats]);
+    // This memoized value updates only when the `chats` array changes to avoid unnecessary re-sorting.
 
-    useEffect(() => {
-        const unsubscribe = onAuthStateChanged(auth, async (user) => {
-            if (user) {
-                const userDocRef = doc(db, "users", user.uid);
-                const userDocSnap = await getDoc(userDocRef);
+    // useEffect(() => {
+    //     const unsubscribe = onAuthStateChanged(auth, async (user) => {
+    //         if (user) {
+    //             const userDocRef = doc(db, "users", user.uid);
+    //             const userDocSnap = await getDoc(userDocRef);
 
-                if (userDocSnap.exists()) {
-                    setUser(userDocSnap.data());
-                } else {
-                    console.error("User document not found");
-                }
-            } else {
-                setUser(null);
-            }
-        });
+    //             if (userDocSnap.exists()) {
+    //                 setUser(userDocSnap.data());
+    //             } else {
+    //                 console.error("User document not found");
+    //             }
+    //         } else {
+    //             setUser(null);
+    //         }
+    //     });
 
-        return () => unsubscribe();
-    }, []);
+    //     return () => unsubscribe();
+    // }, []);
 
     const startChat = (user) => {
         setSelectedUser(user);

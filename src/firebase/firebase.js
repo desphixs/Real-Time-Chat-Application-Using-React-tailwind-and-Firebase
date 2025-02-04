@@ -1,8 +1,6 @@
 import { initializeApp } from "firebase/app";
 import { getAuth, onAuthStateChanged } from "firebase/auth";
 import { getFirestore, collection, addDoc, serverTimestamp, onSnapshot, doc, setDoc, getDoc, updateDoc } from "firebase/firestore";
-import { getMessaging, getToken, onMessage } from "firebase/messaging";
-import { getApp } from "firebase/app";
 
 // Firebase configuration
 const firebaseConfig = {
@@ -16,10 +14,54 @@ const firebaseConfig = {
 
 // Initialize Firebase app
 const app = initializeApp(firebaseConfig);
-
-// Initialize services
 const auth = getAuth(app);
 const db = getFirestore(app);
+
+export const listenForChats = (setChats) => {
+    // Function to listen for real-time chat updates from Firestore
+    // `setChats` is a function that updates the state with the latest chat data
+
+    const chatsRef = collection(db, "chats");
+    // Reference to the "chats" collection in Firestore, where chat messages are stored
+
+    const unsubscribe = onSnapshot(chatsRef, (snapshot) => {
+        // `onSnapshot` listens for changes in the "chats" collection in real-time
+        // Whenever there is an update (new message, edit, delete), this function runs
+
+        const chatList = snapshot.docs.map((doc) => ({
+            // Convert Firestore documents into an array of chat objects
+            id: doc.id, // Get the document ID (unique identifier for each chat)
+            ...doc.data(), // Spread the remaining chat data (messages, users, etc.)
+        }));
+
+        // Filter chats to only include those where the current user is a participant
+        const filteredChats = chatList.filter(
+            (chat) => chat.users.some((user) => user.email === auth.currentUser.email)
+            // Check if the current user's email exists in the "users" array of the chat
+        );
+
+        setChats(filteredChats); // Update state with only the relevant chats for the user
+    });
+
+    return unsubscribe;
+    // Return the unsubscribe function so the listener can be stopped when no longer needed
+};
+
+// Function to listen for messages in a specific chat
+export const listenForMessages = (chatId, setMessages) => {
+    // Reference to the "messages" collection inside a specific chat
+    // The path follows this structure: "chats/{chatId}/messages"
+    const chatRef = collection(db, "chats", chatId, "messages");
+
+    // Listen for real-time updates in the "messages" collection
+    onSnapshot(chatRef, (snapshot) => {
+        // Convert the list of document snapshots into an array of message objects
+        const messages = snapshot.docs.map((doc) => doc.data());
+
+        // Update the state with the new list of messages
+        setMessages(messages);
+    });
+};
 
 export const sendMessage = async (messageText, chatId, user1, user2) => {
     const chatRef = doc(db, "chats", chatId);
@@ -62,32 +104,6 @@ export const sendMessage = async (messageText, chatId, user1, user2) => {
         sender: auth.currentUser.email,
         timestamp: serverTimestamp(),
     });
-};
-
-// Function to listen for messages
-export const listenForMessages = (chatId, setMessages) => {
-    const chatRef = collection(db, "chats", chatId, "messages");
-    onSnapshot(chatRef, (snapshot) => {
-        const messages = snapshot.docs.map((doc) => doc.data());
-        setMessages(messages);
-    });
-};
-
-export const listenForChats = (setChats) => {
-    const chatsRef = collection(db, "chats");
-    const unsubscribe = onSnapshot(chatsRef, (snapshot) => {
-        const chatList = snapshot.docs.map((doc) => ({
-            id: doc.id,
-            ...doc.data(),
-        }));
-
-        // Filter chats to only include those where the current user is a participant
-        const filteredChats = chatList.filter((chat) => chat.users.some((user) => user.email === auth.currentUser.email));
-
-        setChats(filteredChats); // Update state with filtered chats
-    });
-
-    return unsubscribe; // Return the unsubscribe function for cleanup
 };
 
 // Monitor authentication state changes
